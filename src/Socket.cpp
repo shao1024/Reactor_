@@ -16,6 +16,7 @@ int createnonblocking()
 Socket::Socket(int fd):fd_(fd)
 {
 
+
 }
 
 Socket::~Socket()
@@ -30,6 +31,19 @@ int Socket::fd() const
 {
     return fd_;
 }
+
+// 返回port_成员
+uint16_t Socket::port() const
+{
+    return port_;
+}
+
+// 返回ip_成员
+std::string Socket::ip() const
+{
+    return ip_;
+}
+
 
 
 // 设置SO_REUSEADDR选项，允许重复使用本地地址（端口）
@@ -94,5 +108,9 @@ int Socket::accept(InetAddress& clientaddr)
     // accept4与accept的区别是accept4允许在连接被接受时直接设置套接字描述符（是否阻塞）的标志
     int clientfd = accept4(fd_,(sockaddr *)&peeraddr,&len,SOCK_NONBLOCK);
     clientaddr.setaddr(peeraddr);
+
+    ip_ = clientaddr.ip();
+    port_ = clientaddr.port();
+
     return clientfd;
 }

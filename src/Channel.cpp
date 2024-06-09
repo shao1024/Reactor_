@@ -77,8 +77,9 @@ void Channel::handleevent()
 {
     if(revents_ & EPOLLRDHUP)// 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
     {
-        printf("client(eventfd=%d) disconnected.\n",fd_);
-        ::close(fd_);
+        // printf("client(eventfd=%d) disconnected.\n",fd_);
+        // ::close(fd_);
+        closecallback_();
     }
     else if(revents_ & (EPOLLIN|EPOLLPRI)) // 有数据可读
     {
@@ -90,19 +91,10 @@ void Channel::handleevent()
     }
     else// 其它事件，都视为错误，关闭套接字
     {
-        printf("3client(eventfd=%d) error.\n",fd_);
-        close(fd_);   
+        // printf("3client(eventfd=%d) error.\n",fd_);
+        // close(fd_);   
+        errorcallback_();
     }
-}
-
-// 处理新客户端连接请求的回调函数（起监听作用）
-void Channel::newconnection(Socket* servsock)
-{
-    InetAddress clientaddr;
-    // 连接客户端，同时将连上的客户端套接字设置为非阻塞
-    Socket *clientsocket = new Socket(servsock->accept(clientaddr));
-    printf ("accept client(fd=%d,ip=%s,port=%d) ok.\n",clientsocket->fd(),clientaddr.ip(),clientaddr.port());
-    Connection *conn = new Connection(loop_,clientsocket);
 }
 
 // 处理对端发来的消息的回调函数（完成与客户端的通信作用）
@@ -129,8 +121,9 @@ void Channel::onmessage()
         }
         else if(nread == 0)// 客户端连接已断开
         {
-            printf("client(eventfd=%d) disconnected.\n",fd_);
-            close(fd_);
+            // printf("client(eventfd=%d) disconnected.\n",fd_);
+            // close(fd_);
+            closecallback_();
             break;
         } 
     }
@@ -141,3 +134,16 @@ void Channel::setreadcallback(std::function<void()> fn)
 {
     readcallback_ = fn;
 }
+
+// 设置关闭fd_的回调函数
+void Channel::setclosecallback(std::function<void()> fn)
+{
+    closecallback_ = fn;
+}
+
+// 设置fd_发生了错误的回调函数
+void Channel::seterrorcallback(std::function<void()> fn)
+{
+    errorcallback_ = fn;
+}
+

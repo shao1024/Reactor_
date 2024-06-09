@@ -10,12 +10,21 @@ class Socket
 private:
     // Socket持有的fd，在构造函数中传进来。
     const int fd_;
+    std::string ip_;
+    uint16_t port_;
+
 public:
     Socket(int fd);
     ~Socket();
 
     // 返回套接字
     int fd() const;
+    // 返回ip_成员
+    std::string ip() const;
+    // 返回port_成员
+    uint16_t port() const;
+
+
     // 设置SO_REUSEADDR选项，允许重复使用本地地址（端口）
     void setreuseaddr(bool on);
     // 设置SO_REUSEPORT选项，允许多个套接字绑定到同一个端口上
