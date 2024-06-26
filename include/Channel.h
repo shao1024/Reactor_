@@ -27,6 +27,8 @@ private:
     std::function<void()> closecallback_;
     // fd_发生了错误的回调函数，将回调Connection::errorcallback()
     std::function<void()> errorcallback_;
+    // fd_写事件的回调函数，将回调Connection::writecallback()
+    std::function<void()> writecallback_;
 
 
 public:
@@ -45,6 +47,14 @@ public:
     void useet();
     // 设置epoll_wait()监视fd_的读事件。
     void enablereading();
+    // 取消读事件
+    void disablereading();
+    // 注册写事件
+    void enablewriting();
+    // 取消写事件
+    void disablewriting();
+
+
     // 把inepoll_成员的值设置为true。
     void setinepoll();
     // 设置revents_成员，即记录当前fd发生的事件
@@ -53,14 +63,15 @@ public:
     // 事件处理函数，epoll_wait()返回的时候，执行它。
     void handleevent();
 
-    // 处理对端发送过来的消息。
-    void onmessage();
     // 设置fd_读事件的回调函数
     void setreadcallback(std::function<void()> fn);
     // 设置关闭fd_的回调函数
     void setclosecallback(std::function<void()> fn);
     // 设置fd_发生了错误的回调函数
     void seterrorcallback(std::function<void()> fn);
+    // 设置写事件的回调函数
+    void setwritecallback(std::function<void()> fn);
+
 
 };
 

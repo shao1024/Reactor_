@@ -24,6 +24,8 @@ public:
     // 返回port_成员
     uint16_t port() const;
 
+    // 设置ip_和port_成员
+    void setipport(const std::string &ip,uint16_t port);
 
     // 设置SO_REUSEADDR选项，允许重复使用本地地址（端口）
     void setreuseaddr(bool on);

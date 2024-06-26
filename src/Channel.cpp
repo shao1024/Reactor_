@@ -53,7 +53,29 @@ void Channel::useet()
 void Channel::enablereading()
 {
     events_ |= EPOLLIN;
-    //ep_->updatechannel(this);
+    loop_->updatechannel(this);
+}
+
+// 取消读事件
+void Channel::disablereading()
+{
+    events_ &= ~EPOLLIN;
+    loop_->updatechannel(this);
+
+}
+
+// 注册写事件
+void Channel::enablewriting()
+{
+    events_ |= EPOLLOUT;
+    loop_->updatechannel(this);
+
+}
+
+// 取消写事件
+void Channel::disablewriting()
+{
+    events_ &= ~EPOLLOUT;
     loop_->updatechannel(this);
 }
 
@@ -77,55 +99,23 @@ void Channel::handleevent()
 {
     if(revents_ & EPOLLRDHUP)// 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
     {
-        // printf("client(eventfd=%d) disconnected.\n",fd_);
-        // ::close(fd_);
+        // 回调Connection::closecallback()
         closecallback_();
     }
     else if(revents_ & (EPOLLIN|EPOLLPRI)) // 有数据可读
     {
+        // 如果是acceptchannel，将回调Acceptor::newconnection()，如果是clientchannel，将回调Connection::onmessage()
         readcallback_();
     }   
     else if(revents_ & EPOLLOUT)// 有数据需要写，暂时没有代码
     {
-
+         // 回调Connection::writecallback()
+        writecallback_();
     }
     else// 其它事件，都视为错误，关闭套接字
     {
-        // printf("3client(eventfd=%d) error.\n",fd_);
-        // close(fd_);   
+        // 回调Connection::errorcallback() 
         errorcallback_();
-    }
-}
-
-// 处理对端发来的消息的回调函数（完成与客户端的通信作用）
-void Channel::onmessage()
-{
-    char buffer[1024];
-    // 因为使用了非阻塞io，所以要一次性全部读完缓存区内容
-    while (true)
-    {
-        bzero(&buffer,sizeof(buffer));
-        ssize_t nread = read(fd_,buffer,sizeof(buffer));
-        if(nread >0)// 成功的读取到了数据。
-        {
-            printf("recv(eventfd=%d):%s\n",fd_,buffer);
-            send(fd_,buffer,strlen(buffer),0);
-        }
-        else if(nread == -1 && errno == EINTR)// 读取数据的时候被信号中断，继续读取。
-        {
-            continue;
-        }
-        else if(nread == -1 && ((errno == EAGAIN)||(errno == EWOULDBLOCK)))// 全部的数据已读取完毕
-        {
-            break;
-        }
-        else if(nread == 0)// 客户端连接已断开
-        {
-            // printf("client(eventfd=%d) disconnected.\n",fd_);
-            // close(fd_);
-            closecallback_();
-            break;
-        } 
     }
 }
 
@@ -147,3 +137,9 @@ void Channel::seterrorcallback(std::function<void()> fn)
     errorcallback_ = fn;
 }
 
+
+// 设置写事件的回调函数
+void Channel::setwritecallback(std::function<void()> fn)
+{
+    writecallback_ = fn;
+}

@@ -18,11 +18,20 @@ void EventLoop::run()
     while (true)
     {
         // 等待监视的fd有事件发生。
-        std::vector<Channel *> channels = ep_->loop();
-        for (auto &ch:channels)
+        std::vector<Channel *> channels = ep_->loop(10*1000);
+
+        // 如果channels为空，表示超时，回调TcpServer::epolltimeout()
+        if (channels.size() == 0)
         {
-            // 处理epoll_wait()返回的事件。
-            ch->handleevent();
+            epolltimeoutcallback_(this);
+        }
+        else
+        {
+            for (auto &ch:channels)
+            {
+                // 处理epoll_wait()返回的事件。
+                ch->handleevent();
+            }
         }
     }
 
@@ -32,4 +41,9 @@ void EventLoop::run()
 void EventLoop::updatechannel(Channel *ch)
 {
     ep_->updatechannel(ch);
+}
+
+void EventLoop::setepolltimeoutcallback(std::function<void(EventLoop*)> fn)
+{
+    epolltimeoutcallback_ = fn;
 }

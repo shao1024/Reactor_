@@ -85,7 +85,7 @@ void Socket::bind(const InetAddress& servaddr)
         perror("bind");close(fd_);
         exit(-1) ;
     }
-
+    setipport(servaddr.ip(),servaddr.port());
 }
 
 
@@ -99,6 +99,13 @@ void Socket::listen(int nn)
 
 }
 
+// 设置ip_和port_成员
+void Socket::setipport(const std::string &ip,uint16_t port)
+{
+    ip_ = ip;
+    port_ = port;
+}
+
 
 // 受理客户端连接，并将客户端的套接字设置为非阻塞
 int Socket::accept(InetAddress& clientaddr)
@@ -108,9 +115,6 @@ int Socket::accept(InetAddress& clientaddr)
     // accept4与accept的区别是accept4允许在连接被接受时直接设置套接字描述符（是否阻塞）的标志
     int clientfd = accept4(fd_,(sockaddr *)&peeraddr,&len,SOCK_NONBLOCK);
     clientaddr.setaddr(peeraddr);
-
-    ip_ = clientaddr.ip();
-    port_ = clientaddr.port();
 
     return clientfd;
 }

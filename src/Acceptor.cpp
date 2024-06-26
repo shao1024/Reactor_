@@ -35,6 +35,7 @@ void Acceptor::newconnection()
     InetAddress clientaddr;
     // 连接客户端，同时将连上的客户端套接字设置为非阻塞
     Socket *clientsocket = new Socket(servsock_->accept(clientaddr));
+    clientsocket->setipport(clientaddr.ip(),clientaddr.port());
     //printf ("accept client(fd=%d,ip=%s,port=%d) ok.\n",clientsocket->fd(),clientaddr.ip(),clientaddr.port());
     
     //Connection *conn=new Connection(loop_,clientsocket);
