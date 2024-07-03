@@ -2,34 +2,60 @@
 #include <unistd.h>
 #include <iostream>
 
-TcpServer::TcpServer(const std::string &ip, const uint16_t port)
+TcpServer::TcpServer(const std::string &ip, const uint16_t port, int threadnum)
+            :threadnum_(threadnum)
 {
-    acceptor_ = new Acceptor(&loop_,ip,port);
+    // 创建主事件循环
+    mainloop_ = new EventLoop;
+    mainloop_->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout,this,std::placeholders::_1));
+
+    // 将acceptor放入主事件循环中运行
+    acceptor_ = new Acceptor(mainloop_,ip,port);
     acceptor_->setnewconnectioncb(std::bind(&TcpServer::newconnection,this,std::placeholders::_1));
-    loop_.setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout,this,std::placeholders::_1));
+    
+    // 创建线程池
+    threadpool_ = new ThreadPool(threadnum_,"IO"); 
+    // 创建从事件循环并将每个从事件循环的run函数添加到任务队列
+    for (int ii=0; ii<threadnum_; ii++){
+        subloops_.push_back(new EventLoop);
+        
+        // 设置timeout超时的回调函数
+        subloops_[ii]->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout,this,std::placeholders::_1));
+        // 在线程池中运行从事件循环
+        threadpool_->addtask(std::bind(&EventLoop::run,subloops_[ii]));
+    }
+
 }
 
 TcpServer::~TcpServer()
 {
+    delete mainloop_;
     delete acceptor_;
     // 释放所有的Connection对象
     for (auto &aa:conns_)
     {
         delete aa.second;
     }
+
+    // 释放从事件循环
+    for(auto &aa:subloops_)
+    {
+        delete aa;
+    }
     
+    delete threadpool_;
 }
 
 void TcpServer::start()
 {
-    loop_.run();
+    mainloop_->run();
 
 }
 
 void TcpServer::newconnection(Socket* clientsock)
 {
-    // 保证connection在TcpSever中建立，便于管理
-    Connection *conn=new Connection(&loop_,clientsock);
+    // 把新建的conn分配给从事件循环
+    Connection *conn=new Connection(subloops_[clientsock->fd() % threadnum_],clientsock);
     // 设置Connection的回调函数，
     conn->setclosecallback(std::bind(&TcpServer::closeconnection,this,std::placeholders::_1));
     conn->seterrorcallback(std::bind(&TcpServer::errorconnection,this,std::placeholders::_1));

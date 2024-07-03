@@ -2,7 +2,8 @@
 #include <iostream>
 
 
-EchoServer::EchoServer(const std::string &ip,const uint16_t port):tcpserver_(ip,port)
+EchoServer::EchoServer(const std::string &ip,const uint16_t port,int subthreadnum, int workthreadnum)
+                :tcpserver_(ip,port,subthreadnum),threadpool_(workthreadnum,"WORKS")
 {
     // 以下代码不是必须的，业务关心什么事件，就指定相应的回调函数
     tcpserver_.setnewconnectioncb(std::bind(&EchoServer::HandleNewConnection,this,std::placeholders::_1));
@@ -10,7 +11,7 @@ EchoServer::EchoServer(const std::string &ip,const uint16_t port):tcpserver_(ip,
     tcpserver_.seterrorconnectioncb(std::bind(&EchoServer::HandleError,this,std::placeholders::_1));
     tcpserver_.setonmessagecb(std::bind(&EchoServer::HandleMessage,this,std::placeholders::_1,std::placeholders::_2));
     tcpserver_.setsendcompletecb(std::bind(&EchoServer::HandleSendComplete,this,std::placeholders::_1));
-    tcpserver_.setepolltimeoutcb(std::bind(&EchoServer::HandleTimeOut,this,std::placeholders::_1));
+    //tcpserver_.setepolltimeoutcb(std::bind(&EchoServer::HandleTimeOut,this,std::placeholders::_1));
 }
 
 EchoServer::~EchoServer()
@@ -52,19 +53,16 @@ void EchoServer::HandleError(Connection* conn)
 // 处理客户端的请求报文，在TcpServer类中回调此函数
 void EchoServer::HandleMessage(Connection* conn,std::string& message)
 {
-    message = "reply:" + message;
-    /*
-    // 计算报文大小
-    int len = message.size();
-    // 添加报文头部4字节，表示报文长度
-    std::string tmpbuf((char*)&len,4);
-    // 添加报文内容
-    tmpbuf.append(message);
-    //std::cout<< "here"<<std::endl;
-    */
-    // 发送报文
-    conn->send(message.data(),message.size());
+    // 把业务添加到了线程池的任务队列中
+    threadpool_.addtask(std::bind(&EchoServer::Onmessage,this,conn,message));
+    std::cout<<"heelo"<<std::endl;
+}
 
+// 处理客户端的请求报文，用于添加给线程池
+void EchoServer::Onmessage(Connection* conn,std::string& message)
+{
+    message = "reply:" + message;
+    conn->send(message.data(),message.size());
 }
 
 // 数据发送完成后，在TcpServer类中回调此函数

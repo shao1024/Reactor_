@@ -10,6 +10,10 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #设置库文件的输出路径
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+find_package(
+    Threads
+)
+
 #包含头文件
 include_directories(
     ${PROJECT_SOURCE_DIR}/include)

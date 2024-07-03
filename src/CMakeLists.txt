@@ -3,5 +3,7 @@ aux_source_directory(./ SRC_LIST)
 
 add_library(tcpserver SHARED 
         ${SRC_LIST})
-target_link_libraries(tcpserver)
+target_link_libraries(tcpserver
+                        Threads::Threads
+)
 

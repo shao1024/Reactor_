@@ -1,13 +1,21 @@
 #pragma once
 
 #include "Acceptor.h"
+#include "ThreadPool.h"
 #include <map>
 
+// Tcp网络服务类
 class TcpServer
 {
 private:
-    // 一个TcpServer可以有多个事件循环，现在是单线程，暂时只用一个事件循环。
-    EventLoop loop_;
+    // 主事件循环。
+    EventLoop *mainloop_;
+    // 存放从事件循环的容器
+    std::vector<EventLoop*> subloops_;
+    // 线程池
+    ThreadPool* threadpool_;
+    // 线程池的大小，即从事件循环的个数
+    int threadnum_;
     // 一个TcpServer只有一个Acceptor对象。
     Acceptor *acceptor_;
     // 一个TcpServer有多个Connection对象，存放在map容器中;int表示套接字以及其对应的connection
@@ -29,7 +37,7 @@ private:
     
     
 public:
-    TcpServer(const std::string &ip, const uint16_t port);
+    TcpServer(const std::string &ip, const uint16_t port, int threadnum=3);
     ~TcpServer();
 
     // 运行事件循环

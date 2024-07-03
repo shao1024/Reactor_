@@ -8,4 +8,5 @@
 
 add_executable(echoserver_v1 echoserver_v1.cpp)
 target_link_libraries(echoserver_v1
-                      tcpserver )
+                      tcpserver 
+                      Threads::Threads)

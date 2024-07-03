@@ -10,9 +10,11 @@ class EchoServer
 {
 private:
     TcpServer tcpserver_;
+    // 工作线程池 存放计算的业务
+    ThreadPool threadpool_;
 
 public:
-    EchoServer(const std::string &ip,const uint16_t port);
+    EchoServer(const std::string &ip,const uint16_t port, int subthreadnum=3, int workthreadnum=5);
     ~EchoServer();
 
     // 启动服务
@@ -30,7 +32,8 @@ public:
     // epoll_wait()超时，在TcpServer类中回调此函数
     void HandleTimeOut(EventLoop* loop);
 
-
+    // 处理客户端的请求报文，用于添加给工作线程池
+    void Onmessage(Connection* conn,std::string& message);
 };
 
 

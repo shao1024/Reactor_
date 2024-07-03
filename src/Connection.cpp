@@ -93,7 +93,7 @@ void Connection::onmessage()
         ssize_t nread = read(fd(),buffer,sizeof(buffer));
         if(nread >0)// 成功的读取到了数据。
         {
-            // printf("recv(eventfd=%d):%s\n",fd(),buffer);
+            //printf("recv(eventfd=%d):%s\n",fd(),buffer);
             // send(fd(),buffer,strlen(buffer),0);
             inputbuffer_.append(buffer,nread);
         }
