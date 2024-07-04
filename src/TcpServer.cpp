@@ -3,47 +3,49 @@
 #include <iostream>
 
 TcpServer::TcpServer(const std::string &ip, const uint16_t port, int threadnum)
-            :threadnum_(threadnum)
+            :threadnum_(threadnum),mainloop_(new EventLoop),acceptor_(mainloop_,ip,port),threadpool_(threadnum,"IO")
 {
     // 创建主事件循环
-    mainloop_ = new EventLoop;
+    //mainloop_ = new EventLoop;
     mainloop_->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout,this,std::placeholders::_1));
 
     // 将acceptor放入主事件循环中运行
-    acceptor_ = new Acceptor(mainloop_,ip,port);
-    acceptor_->setnewconnectioncb(std::bind(&TcpServer::newconnection,this,std::placeholders::_1));
+    //acceptor_ = new Acceptor(mainloop_,ip,port);
+    acceptor_.setnewconnectioncb(std::bind(&TcpServer::newconnection,this,std::placeholders::_1));
     
     // 创建线程池
-    threadpool_ = new ThreadPool(threadnum_,"IO"); 
+    //threadpool_ = new ThreadPool(threadnum_,"IO"); 
     // 创建从事件循环并将每个从事件循环的run函数添加到任务队列
+    //std::cout<<threadnum_<<std::endl;
     for (int ii=0; ii<threadnum_; ii++){
-        subloops_.push_back(new EventLoop);
-        
+        //subloops_.push_back(std::move(std::make_unique<EventLoop>() ));
+        subloops_.emplace_back(new EventLoop);
         // 设置timeout超时的回调函数
         subloops_[ii]->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout,this,std::placeholders::_1));
-        // 在线程池中运行从事件循环
-        threadpool_->addtask(std::bind(&EventLoop::run,subloops_[ii]));
+        // 在线程池中运行从事件循环  
+        threadpool_.addtask(std::bind(&EventLoop::run,subloops_[ii].get()));
+        //std::cout<<"hello"<<std::endl;
     }
 
 }
 
 TcpServer::~TcpServer()
 {
-    delete mainloop_;
-    delete acceptor_;
+    //delete mainloop_;
+    //delete acceptor_;
     // 释放所有的Connection对象
-    for (auto &aa:conns_)
-    {
-        delete aa.second;
-    }
+    // for (auto &aa:conns_)
+    // {
+    //     delete aa.second;
+    // }
 
-    // 释放从事件循环
-    for(auto &aa:subloops_)
-    {
-        delete aa;
-    }
+    // // 释放从事件循环
+    // for(auto &aa:subloops_)
+    // {
+    //     delete aa;
+    // }
     
-    delete threadpool_;
+    // delete threadpool_;
 }
 
 void TcpServer::start()
@@ -52,10 +54,10 @@ void TcpServer::start()
 
 }
 
-void TcpServer::newconnection(Socket* clientsock)
+void TcpServer::newconnection(std::unique_ptr<Socket> clientsock)
 {
     // 把新建的conn分配给从事件循环
-    Connection *conn=new Connection(subloops_[clientsock->fd() % threadnum_],clientsock);
+    spConnection conn(new Connection(subloops_[clientsock->fd() % threadnum_],std::move(clientsock)));
     // 设置Connection的回调函数，
     conn->setclosecallback(std::bind(&TcpServer::closeconnection,this,std::placeholders::_1));
     conn->seterrorcallback(std::bind(&TcpServer::errorconnection,this,std::placeholders::_1));
@@ -71,7 +73,7 @@ void TcpServer::newconnection(Socket* clientsock)
 }
 
 // 关闭客户端的连接，在Connection类中回调此函数
-void TcpServer::closeconnection(Connection* conn)
+void TcpServer::closeconnection(spConnection conn)
 {
     if (closeconnectioncb_)
     {
@@ -82,11 +84,11 @@ void TcpServer::closeconnection(Connection* conn)
     //::close(conn->fd());
     conns_.erase(conn->fd());
     // 会一层一层最后关闭对应的套接字
-    delete conn;
+    //delete conn;
 }
 
 // 客户端的连接错误，在Connection类中回调此函数
-void TcpServer::errorconnection(Connection* conn)
+void TcpServer::errorconnection(spConnection conn)
 {
     if (errorconnectioncb_)
     {
@@ -97,12 +99,12 @@ void TcpServer::errorconnection(Connection* conn)
     //::close(conn->fd());
     conns_.erase(conn->fd());
     // 会一层一层最后关闭对应的套接字
-    delete conn;
+    //delete conn;
 }
 
 
 // 处理客户端的请求报文，在Connection类中回调此函数
-void TcpServer::onmessage(Connection *conn,std::string message)
+void TcpServer::onmessage(spConnection conn,std::string& message)
 {
     // 处理报文的一些业务
     /*
@@ -125,7 +127,7 @@ void TcpServer::onmessage(Connection *conn,std::string message)
 }
 
 // 数据发送完成后，在Connection类中回调此函数
-void TcpServer::sendcomplete(Connection* conn)
+void TcpServer::sendcomplete(spConnection conn)
 {
     if (sendcompletecb_)
     {
@@ -146,28 +148,28 @@ void TcpServer::epolltimeout(EventLoop* loop)
 
 
 
-void TcpServer::setnewconnectioncb(std::function<void(Connection*)> fn)
+void TcpServer::setnewconnectioncb(std::function<void(spConnection)> fn)
 {
     newconnectioncb_ = fn;
 }
 
-void TcpServer::setcloseconnectioncb(std::function<void(Connection*)> fn)
+void TcpServer::setcloseconnectioncb(std::function<void(spConnection)> fn)
 {
     closeconnectioncb_ = fn;
 }
 
-void TcpServer::seterrorconnectioncb(std::function<void(Connection*)> fn)
+void TcpServer::seterrorconnectioncb(std::function<void(spConnection)> fn)
 {
     errorconnectioncb_ = fn;
 }
 
 // 
-void TcpServer::setonmessagecb(std::function<void(Connection*,std::string &message)> fn)
+void TcpServer::setonmessagecb(std::function<void(spConnection,std::string &message)>  fn)
 {
     onmessagecb_ = fn;
 }
 
-void TcpServer::setsendcompletecb(std::function<void(Connection*)> fn)
+void TcpServer::setsendcompletecb(std::function<void(spConnection)> fn)
 {
     sendcompletecb_ = fn;
 }

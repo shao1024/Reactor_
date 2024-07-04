@@ -27,7 +27,7 @@ void EchoServer::Start()
 }
 
 // 处理新客户端连接请求，在TcpServer类中回调此函数
-void EchoServer::HandleNewConnection(Connection* conn)
+void EchoServer::HandleNewConnection(spConnection conn)
 {
     std::cout << "New Connection Come in." << std::endl;
 
@@ -36,7 +36,7 @@ void EchoServer::HandleNewConnection(Connection* conn)
 }
 
 // 关闭客户端的连接，在TcpServer类中回调此函数
-void EchoServer::HandleClose(Connection* conn)
+void EchoServer::HandleClose(spConnection conn)
 {
     std::cout << "EchoServer conn closed." << std::endl;
     // 根据业务的需求，在这里可以增加其它的代码
@@ -44,29 +44,29 @@ void EchoServer::HandleClose(Connection* conn)
 }
 
 // 客户端的连接错误，在TcpServer类中回调此函数
-void EchoServer::HandleError(Connection* conn)
+void EchoServer::HandleError(spConnection conn)
 {
     std::cout << "EchoServer conn error." << std::endl;
     // 根据业务的需求，在这里可以增加其它的代码
 }
 
 // 处理客户端的请求报文，在TcpServer类中回调此函数
-void EchoServer::HandleMessage(Connection* conn,std::string& message)
+void EchoServer::HandleMessage(spConnection conn,std::string& message)
 {
     // 把业务添加到了线程池的任务队列中
     threadpool_.addtask(std::bind(&EchoServer::Onmessage,this,conn,message));
-    std::cout<<"heelo"<<std::endl;
+    
 }
 
 // 处理客户端的请求报文，用于添加给线程池
-void EchoServer::Onmessage(Connection* conn,std::string& message)
+void EchoServer::Onmessage(spConnection conn,std::string& message)
 {
     message = "reply:" + message;
     conn->send(message.data(),message.size());
 }
 
 // 数据发送完成后，在TcpServer类中回调此函数
-void EchoServer::HandleSendComplete(Connection* conn)
+void EchoServer::HandleSendComplete(spConnection conn)
 {
     std::cout << "Message send complete." << std::endl;
     // 根据业务的需求，在这里可以增加其它的代码

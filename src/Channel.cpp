@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 
-Channel::Channel(EventLoop* loop,int fd):loop_(loop),fd_(fd)
+Channel::Channel(const std::unique_ptr<EventLoop>& loop,int fd):loop_(loop),fd_(fd)
 {
 
 }
@@ -39,6 +39,12 @@ uint32_t Channel::revents()
 bool Channel::inepoll()
 {
     return inepoll_;
+}
+
+// 把inepoll_成员的值设置为true。
+void Channel::setinepoll(bool inepoll)
+{
+    inepoll_ = inepoll;
 }
 
 
@@ -79,12 +85,22 @@ void Channel::disablewriting()
     loop_->updatechannel(this);
 }
 
-
-// 把inepoll_成员的值设置为true。
-void Channel::setinepoll()
+// 取消全部的事件
+void Channel::disableall()
 {
-    inepoll_ = true;
+    events_ = 0;
+    loop_->updatechannel(this);
+
+} 
+
+// 从事件循环中删除Channel
+void Channel::remove()
+{
+    disableall();
+    loop_->removechannel(this);
+
 }
+
 
 
 // 设置revents_成员，即记录当前fd发生的事件

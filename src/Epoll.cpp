@@ -38,10 +38,24 @@ void Epoll::updatechannel(Channel *ch)
         {
             perror("epoll_ctl() failed.\n"); exit(-1);
         }
-        ch->setinepoll();
+        ch->setinepoll(true);
     }
 }
 
+// 从红黑树上删除channel
+void Epoll::removechannel(Channel *ch)
+{
+    if(ch->inepoll())
+    {
+        if(epoll_ctl(epollfd_,EPOLL_CTL_DEL,ch->fd(),0) == -1){
+            perror("epoll_ctl() failed.\n"); exit(-1);
+        }
+    }
+
+}
+
+
+// 运行epoll_wait()，等待事件的发生，已发生的事件用vector容器返回
 std::vector<Channel *> Epoll::loop(int timeout)
 {
     // 存放epoll_wait()返回的事件。
@@ -57,7 +71,8 @@ std::vector<Channel *> Epoll::loop(int timeout)
     }
     // 超时
     if(infds == 0){
-        perror("time out here"); return result;
+        // perror("time out here"); 
+        return result;
     }
 
     // 如果infds>0，表示有事件发生的fd的数量。

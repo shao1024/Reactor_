@@ -7,7 +7,7 @@ EventLoop::EventLoop():ep_(new Epoll)
 
 EventLoop::~EventLoop()
 {
-    delete ep_;
+    //delete ep_;
 }
 
 
@@ -41,6 +41,12 @@ void EventLoop::run()
 void EventLoop::updatechannel(Channel *ch)
 {
     ep_->updatechannel(ch);
+}
+
+// 从黑树上删除channel
+void EventLoop::removechannel(Channel *ch)
+{
+    ep_->removechannel(ch);
 }
 
 void EventLoop::setepolltimeoutcallback(std::function<void(EventLoop*)> fn)

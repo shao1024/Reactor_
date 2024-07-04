@@ -4,8 +4,10 @@
 #include "Socket.h"
 #include "EventLoop.h"
 #include <functional>
+#include <memory>
 
 class EventLoop;
+
 
 class Channel
 {
@@ -13,7 +15,7 @@ private:
     // Channel拥有的fd，Channel和fd是一对一的关系。
     int fd_ = -1;
     // Channel对应的epoll句柄，一个Epoll包含多个Channel；一个channel有唯一的Epoll句柄
-    EventLoop *loop_=nullptr;
+    const std::unique_ptr<EventLoop>& loop_;
     // Channel是否已添加到epoll树上，如果未添加，调用epoll_ctl()的时候用EPOLL_CTL_ADD，否则用EPOLL_CTL_MOD。
     bool inepoll_=false;
     // fd_需要监视的事件。listenfd和clientfd需要监视EPOLLIN，clientfd还可能需要监视EPOLLOUT。
@@ -32,7 +34,7 @@ private:
 
 
 public:
-    Channel(EventLoop* loop,int fd);
+    Channel(const std::unique_ptr<EventLoop>& loop,int fd);
     ~Channel();
 
     // 返回fd_成员。
@@ -41,8 +43,6 @@ public:
     uint32_t events();
     // 返回revents_成员
     uint32_t revents();
-    // 返回inepoll_成员
-    bool inepoll();
     // 采用边缘触发。
     void useet();
     // 设置epoll_wait()监视fd_的读事件。
@@ -53,10 +53,16 @@ public:
     void enablewriting();
     // 取消写事件
     void disablewriting();
+    // 取消全部的事件
+    void disableall(); 
+    // 从事件循环中删除Channel
+    void remove();
 
 
-    // 把inepoll_成员的值设置为true。
-    void setinepoll();
+    // 设置inepoll_成员的值
+    void setinepoll(bool inepoll);
+    // 返回inepoll_成员
+    bool inepoll();
     // 设置revents_成员，即记录当前fd发生的事件
     void setrevents(uint32_t ev);
 

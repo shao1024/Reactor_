@@ -4,34 +4,43 @@
 #include "Socket.h"
 #include "Channel.h"
 #include "Buffer.h"
+#include <memory>
+#include <atomic>
 
-class Connection
+// 声明Connection类，以便using语句能找到类名
+class Connection;
+using spConnection = std::shared_ptr<Connection>;
+
+// 继承一个模板类，使得返回的类指针也是一个shareed_ptr智能指针；方便进行内存管理
+class Connection:public std::enable_shared_from_this<Connection>
 {
 private:
     // Connection对应的事件循环，在构造函数中传入
-    EventLoop *loop_;
+    const std::unique_ptr<EventLoop>& loop_;
     // 与客户端通讯的Socket
-    Socket *clientsock_;
+    std::unique_ptr<Socket> clientsock_;
     // Connection对应的channel，在构造函数中创建
-    Channel *clientchannel_;
+    std::unique_ptr<Channel> clientchannel_;
 
     // 接收缓存区
     Buffer inputbuffer_;
     // 发送缓存区
     Buffer outputbuffer_;
+    // 客户端连接是否已断开，如果已断开，则设置为true。
+    std::atomic_bool disconnect_;
 
     // 关闭fd_的回调函数，将回调上层的TcpServer::closeconnection()。
-    std::function<void(Connection*)> closecallback_;
+    std::function<void(spConnection)> closecallback_;
     // fd_发生了错误的回调函数，将回调TcpServer::errorconnection()。
-    std::function<void(Connection*)> errorcallback_;
+    std::function<void(spConnection)> errorcallback_;
     // 处理接受到报文的回调函数
-    std::function<void(Connection*,std::string)> onmessagecallback_;
+    std::function<void(spConnection,std::string&)> onmessagecallback_;
     // 发送数据完成后的回调函数，将回调TcpServer::sendcomplete()
-    std::function<void(Connection*)> sendcompletecallback_;
+    std::function<void(spConnection)> sendcompletecallback_;
 
 
 public:
-    Connection(EventLoop* loop,Socket *clientsock);
+    Connection(const std::unique_ptr<EventLoop>& loop,std::unique_ptr<Socket> clientsock);
     ~Connection();
 
     // 返回客户端的fd
@@ -51,13 +60,13 @@ public:
     void writecallback();
 
     // 设置关闭fd_的回调函数。
-    void setclosecallback(std::function<void(Connection*)> fn);
+    void setclosecallback(std::function<void(spConnection)> fn);
     // 设置fd_发生了错误的回调函数。
-    void seterrorcallback(std::function<void(Connection*)> fn);
+    void seterrorcallback(std::function<void(spConnection)> fn);
     // 设置消息的回调函数
-    void setonmessagecallback(std::function<void(Connection*,std::string)> fn);
+    void setonmessagecallback(std::function<void(spConnection,std::string&)> fn);
     // 发送数据完成后的回调函数
-    void setsendcompletecallback(std::function<void(Connection*)> fn);
+    void setsendcompletecallback(std::function<void(spConnection)> fn);
 
     // 发送数据
     void send(const char* data,size_t size);
