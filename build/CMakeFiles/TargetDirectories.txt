@@ -1,8 +1,0 @@
-/root/Shao/Reactor/my_reactor/build/CMakeFiles/rebuild_cache.dir
-/root/Shao/Reactor/my_reactor/build/CMakeFiles/edit_cache.dir
-/root/Shao/Reactor/my_reactor/build/src/CMakeFiles/edit_cache.dir
-/root/Shao/Reactor/my_reactor/build/src/CMakeFiles/rebuild_cache.dir
-/root/Shao/Reactor/my_reactor/build/src/CMakeFiles/tcpserver.dir
-/root/Shao/Reactor/my_reactor/build/test/CMakeFiles/rebuild_cache.dir
-/root/Shao/Reactor/my_reactor/build/test/CMakeFiles/edit_cache.dir
-/root/Shao/Reactor/my_reactor/build/test/CMakeFiles/echoserver_v1.dir

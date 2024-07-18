@@ -53,15 +53,27 @@ void EchoServer::HandleError(spConnection conn)
 // 处理客户端的请求报文，在TcpServer类中回调此函数
 void EchoServer::HandleMessage(spConnection conn,std::string& message)
 {
-    // 把业务添加到了线程池的任务队列中
-    threadpool_.addtask(std::bind(&EchoServer::Onmessage,this,conn,message));
     
+    // 工作线程池为空时
+    if (threadpool_.size() == 0)
+    {   
+        // 如果没有工作线程，则直接在IO线程中处理业务
+        Onmessage(conn,message);
+    }
+    else
+    {
+        // 把业务添加到了线程池的任务队列中
+        threadpool_.addtask(std::bind(&EchoServer::Onmessage,this,conn,message));
+
+    } 
 }
 
 // 处理客户端的请求报文，用于添加给线程池
 void EchoServer::Onmessage(spConnection conn,std::string& message)
 {
+    //std::cout<<"1.3 here!"<<std::endl;
     message = "reply:" + message;
+    
     conn->send(message.data(),message.size());
 }
 

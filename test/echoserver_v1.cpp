@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    EchoServer echoserver(argv[1],atoi(argv[2]));
+    EchoServer echoserver(argv[1],atoi(argv[2]),3,1);
     echoserver.Start();
 
     return 0;

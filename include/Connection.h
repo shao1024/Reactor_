@@ -16,7 +16,7 @@ class Connection:public std::enable_shared_from_this<Connection>
 {
 private:
     // Connection对应的事件循环，在构造函数中传入
-    const std::unique_ptr<EventLoop>& loop_;
+    EventLoop* loop_;
     // 与客户端通讯的Socket
     std::unique_ptr<Socket> clientsock_;
     // Connection对应的channel，在构造函数中创建
@@ -40,7 +40,7 @@ private:
 
 
 public:
-    Connection(const std::unique_ptr<EventLoop>& loop,std::unique_ptr<Socket> clientsock);
+    Connection(EventLoop* loop,std::unique_ptr<Socket> clientsock);
     ~Connection();
 
     // 返回客户端的fd
@@ -68,8 +68,10 @@ public:
     // 发送数据完成后的回调函数
     void setsendcompletecallback(std::function<void(spConnection)> fn);
 
-    // 发送数据
+    // 发送数据，不管在任何线程中，都是调用此函数发送数据
     void send(const char* data,size_t size);
+    // 发送数据，如果当前线程是IO线程，直接进行调用；如果是工作线程，将此函数传去IO线程中执行
+    void sendinloop(std::shared_ptr<std::string> data);
 };
 
 

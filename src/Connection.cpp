@@ -2,7 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 
-Connection::Connection(const std::unique_ptr<EventLoop>& loop,std::unique_ptr<Socket> clientsock)
+Connection::Connection(EventLoop* loop,std::unique_ptr<Socket> clientsock)
         :loop_(loop),clientsock_(std::move(clientsock)),disconnect_(false),clientchannel_(new Channel(loop_,clientsock_->fd()))
 {
     // 为新客户端连接准备读事件，并添加到epoll中。
@@ -150,10 +150,32 @@ void Connection::onmessage()
 }
 
 
-// 发送数据
+// 发送数据,不管在任何线程中，都是调用此函数发送数据。
 void Connection::send(const char* data,size_t size)
 {
-    outputbuffer_.appendwithhead(data,size); // 把需要发送的数据保存到Connection的发送缓冲区中
+    if (disconnect_==true) {  printf("客户端连接已断开了，send()直接返回。\n"); return;}
+
+    std::shared_ptr<std::string> message(new std::string(data));
+    // 如果当前线程是IO线程，直接调用send()
+    if(loop_->isinloopthread())
+    {
+        printf("send() 在事件循环的线程中。\n");
+        sendinloop(message);
+    }
+    else
+    {
+        printf("send() 不在事件循环的线程中。\n");
+        //std::cout<<size<<std::endl;
+        loop_->queueinloop(std::bind(&Connection::sendinloop,this,message));
+    }
+    
+}
+
+// 发送数据，如果当前线程是IO线程，直接进行调用；如果是工作线程，将此函数传去IO线程中执行
+void Connection::sendinloop(std::shared_ptr<std::string> data)
+
+{
+    outputbuffer_.appendwithhead(data->data(),data->size()); // 把需要发送的数据保存到Connection的发送缓冲区中
     clientchannel_->enablewriting(); // 注册写事件
 }
 

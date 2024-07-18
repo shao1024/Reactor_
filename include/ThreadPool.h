@@ -37,6 +37,9 @@ public:
     // 在析构函数中停止线程
     ~ThreadPool();
 
+    // 获取线程池中线程的个数
+    size_t size();
+
     // 将任务添加到队列中
     void addtask(std::function<void()> task);
 };

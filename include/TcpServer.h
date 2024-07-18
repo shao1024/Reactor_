@@ -9,6 +9,10 @@
 class TcpServer
 {
 private:
+    // 线程池的大小，即从事件循环的个数  
+    // (注：在使用初始化列表将参数作为其它类初始化的参数，需保证在头文件中该参数在那个类的前面)
+    // 如：使用threadnum_初始化threadpool_时，在类的声明中中threadnum_需要在threadpool_的前面
+    int threadnum_;
     // 主事件循环。
     std::unique_ptr<EventLoop> mainloop_;
     // 存放从事件循环的容器
@@ -17,8 +21,7 @@ private:
     Acceptor acceptor_;
     // 线程池
     ThreadPool threadpool_;
-    // 线程池的大小，即从事件循环的个数
-    int threadnum_ = 0;
+    
     
     // 一个TcpServer有多个Connection对象，存放在map容器中;int表示套接字以及其对应的connection
     std::map<int,spConnection> conns_;
