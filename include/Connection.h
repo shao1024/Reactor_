@@ -4,11 +4,15 @@
 #include "Socket.h"
 #include "Channel.h"
 #include "Buffer.h"
+#include "Timestamp.h"
 #include <memory>
 #include <atomic>
 
 // 声明Connection类，以便using语句能找到类名
 class Connection;
+class EventLoop;
+class Channel;
+
 using spConnection = std::shared_ptr<Connection>;
 
 // 继承一个模板类，使得返回的类指针也是一个shareed_ptr智能指针；方便进行内存管理
@@ -37,7 +41,8 @@ private:
     std::function<void(spConnection,std::string&)> onmessagecallback_;
     // 发送数据完成后的回调函数，将回调TcpServer::sendcomplete()
     std::function<void(spConnection)> sendcompletecallback_;
-
+    // 时间戳，创建Connection对象时为当前时间，每接收到一个报文，把时间戳更新为当前时间
+    Timestamp lasttime_;
 
 public:
     Connection(EventLoop* loop,std::unique_ptr<Socket> clientsock);
@@ -72,6 +77,8 @@ public:
     void send(const char* data,size_t size);
     // 发送数据，如果当前线程是IO线程，直接进行调用；如果是工作线程，将此函数传去IO线程中执行
     void sendinloop(std::shared_ptr<std::string> data);
+    // 判断TCP连接是否超时（空闲太久）
+    bool timeout(time_t now,int val);
 };
 
 

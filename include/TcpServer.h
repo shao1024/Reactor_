@@ -21,6 +21,9 @@ private:
     Acceptor acceptor_;
     // 线程池
     ThreadPool threadpool_;
+    // 保护conns_的互斥锁
+    std::mutex mmutex_;
+
     
     
     // 一个TcpServer有多个Connection对象，存放在map容器中;int表示套接字以及其对应的connection
@@ -47,6 +50,8 @@ public:
 
     // 运行事件循环
     void start();
+    // 停止IO线程和事件循环
+    void stop();
 
     // 处理新客户端连接请求,创建connection便于tcpserver管理
     void newconnection(std::unique_ptr<Socket> clientsock);
@@ -60,6 +65,8 @@ public:
     void sendcomplete(spConnection conn);
     // epoll_wait()超时，在EventLoop类中回调此函数
     void epolltimeout(EventLoop* loop);
+    // 删除conns_中的Connection对象，在EventLoop::handletimer()中将回调此函数
+    void removeconn(int fd);
 
     void setnewconnectioncb(std::function<void(spConnection)> fn);
     void setcloseconnectioncb(std::function<void(spConnection)> fn);
@@ -68,7 +75,7 @@ public:
     void setsendcompletecb(std::function<void(spConnection)> fn);
     void setepolltimeoutcb(std::function<void(EventLoop*)> fn);
 
-
+    
 
 };
 

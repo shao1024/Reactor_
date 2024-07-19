@@ -42,6 +42,9 @@ public:
 
     // 将任务添加到队列中
     void addtask(std::function<void()> task);
+
+    // 停止线程
+    void stop();
 };
 
 

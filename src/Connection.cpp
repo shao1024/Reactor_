@@ -132,7 +132,7 @@ void Connection::onmessage()
                 inputbuffer_.erase(0,len+4);
 
                 printf("message (eventfd=%d):%s\n",fd(),message.c_str());
-
+                lasttime_ = Timestamp::now();
                 // 回调TcpServer::onmessage()处理客户端的请求消息
                 onmessagecallback_(shared_from_this(),message);
                 
@@ -192,6 +192,12 @@ void Connection::writecallback()
         clientchannel_->disablewriting();
         sendcompletecallback_(shared_from_this());
     }
+}
+
+// 判断TCP连接是否超时（空闲太久）val为要求的最大间隔时长
+bool Connection::timeout(time_t now,int val)
+{
+    return now - lasttime_.toint() > val;
 }
 
 

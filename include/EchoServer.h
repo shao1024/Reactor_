@@ -19,6 +19,8 @@ public:
 
     // 启动服务
     void Start();
+    // 停止服务
+    void Stop();
     // 处理新客户端连接请求，在TcpServer类中回调此函数
     void HandleNewConnection(spConnection conn);
     // 关闭客户端的连接，在TcpServer类中回调此函数
